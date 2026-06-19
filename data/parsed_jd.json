@@ -1,0 +1,32 @@
+{
+  "seniority": "Senior",
+  "domain": "AI/ML Engineering",
+  "required_skills": [
+    "sentence-transformers",
+    "embeddings",
+    "vector databases",
+    "FAISS",
+    "Elasticsearch",
+    "Python",
+    "evaluation frameworks",
+    "production ML systems"
+  ],
+  "nice_to_have": [
+    "LLM fine-tuning",
+    "LoRA",
+    "QLoRA",
+    "PEFT",
+    "learning-to-rank",
+    "XGBoost",
+    "HR-tech",
+    "distributed systems",
+    "open-source contributions"
+  ],
+  "implicit_signals": [
+    "5-9 years production experience",
+    "hybrid work mode",
+    "Pune or Noida location preference",
+    "founding team mentality",
+    "NLP and information retrieval background"
+  ]
+}

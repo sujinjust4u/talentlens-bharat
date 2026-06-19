@@ -1,0 +1,19 @@
+{
+  "seniority": "Mid",
+  "domain": "Technical Product Management",
+  "required_skills": [
+    "Product Roadmap",
+    "Agile",
+    "SQL",
+    "Python",
+    "Jira",
+    "System Design"
+  ],
+  "nice_to_have": [
+    "FastAPI",
+    "Docker",
+    "LLMs",
+    "B2B SaaS",
+    "Product Strategy"
+  ]
+}

@@ -1,0 +1,22 @@
+Position: Technical Product Manager (AI & Backend Platform)
+Location: Bangalore, India
+Domain: Technical Product Management
+Experience: 3-5 years of product management experience
+
+About the Role:
+We are looking for a Technical Product Manager to own our AI and Backend Engineering platforms. You will bridge the gap between technical execution and business strategy, managing the roadmap for core microservices, API infrastructures, and machine learning pipelines. You will collaborate closely with AI/ML Backend Engineers, ensuring reliability, scalability, and seamless integration of LLMs/RAG systems.
+
+Required Skills:
+- Product roadmap ownership and backlog prioritization
+- Experience with Agile development methodologies (Scrum, Kanban)
+- Proficiency in Python and FastAPI for understanding backend API architectures
+- Strong SQL skills for data analysis and database queries (PostgreSQL/Redis)
+- System design knowledge and familiarity with microservices patterns
+- Experience working with engineering teams on AI/ML or Backend systems
+
+Nice to Have:
+- Technical background in Software Engineering or AI/ML
+- Experience working with cloud platforms (AWS) and containerization (Docker, Kubernetes)
+- Understanding of LLM integration, LangChain, or RAG pipelines
+- Familiarity with analytics platforms like Mixpanel or Amplitude
+- Domain knowledge of B2B SaaS workflows and product metrics

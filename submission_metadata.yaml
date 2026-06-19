@@ -1,0 +1,80 @@
+# Redrob Hackathon — Submission Metadata
+# TalentLens Bharat — Intelligent Candidate Discovery & Ranking
+
+# ============================================================================
+# Team identity
+# ============================================================================
+team_name: "talentlens-bharat"
+
+primary_contact:
+  name: "Sujin SP"
+  email: "sujin.is.online@gmail.com"
+  phone: "+91-XXXXXXXXXX"
+
+team_members:
+  - name: "Sujin SP"
+    email: "sujin.is.online@gmail.com"
+    role: "Full-Stack ML Engineer"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/sujinjust4u/talentlens-bharat"
+
+sandbox_link: "https://talentlens-bharat-p9mszttjf8x77caexawwvf.streamlit.app"
+
+reproduce_command: "python3 rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "MacBook Pro M2"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.13.3"
+  os: "macOS 14.2"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: true
+  pre_computation_time_minutes: 15
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Claude"
+  - "GitHub Copilot"
+
+ai_usage_summary: |
+  Used Claude for architecture discussion, code review, and debugging.
+  Used GitHub Copilot for autocomplete. No candidate data was fed to
+  any external LLM during the ranking step. LLM calls (Groq/Llama-3.1)
+  are only used in offline pre-generation of reasoning strings, which
+  are cached as data/reasoning_cache.json before submission.
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+methodology_summary: |
+  Four-component offline ranker with zero network calls at runtime.
+  Semantic similarity (55%) via sentence-transformers/all-MiniLM-L6-v2
+  cosine embeddings precomputed for 100K candidates. India platform
+  signals (20%) score activity recency, city tier, profile completeness,
+  and India-specific tech. Career trajectory (10%) measures skill
+  velocity, title progression speed, and advanced recency. Behavioral
+  signals (15%) weight open_to_work, recruiter response rate, and
+  GitHub activity. Honeypot detection via proficiency-duration
+  inconsistency catches ~605 impossible profiles. Disqualifier
+  penalties for consulting-only careers, title-chasers, and
+  offer-ghosting. Runtime: 6 seconds for 100K candidates on CPU.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true

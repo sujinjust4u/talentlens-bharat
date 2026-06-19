@@ -1,0 +1,23 @@
+Position: Senior Backend Engineer (AI & Data Platforms)
+Location: Remote (India / APAC)
+Domain: Fintech / WealthTech
+Experience: 5+ years of production experience
+
+About the Role:
+We are looking for a Senior Backend Engineer to join our core AI and Data team. You will be responsible for building scalable data pipelines, wrapping machine learning models into robust APIs, and optimizing database performance. This is a high-ownership role in a fast-paced fintech startup environment.
+
+Required Skills:
+- Strong proficiency in Python (FastAPI, Flask)
+- Hands-on experience with SQL databases (PostgreSQL) and caching layers (Redis)
+- Solid understanding of ML model serving (specifically using LangChain, Hugging Face, or LLMs)
+- Production experience with Docker and Kubernetes for container orchestration
+- Strong writing, communication, and system design skills
+
+Nice to Have:
+- Experience building financial auditing tools or dealing with SEC data / transaction systems
+- Familiarity with vector databases like FAISS, Qdrant, or Pinecone
+- Experience with AWS cloud infrastructure (ECS, EKS, RDS)
+- Contribution to open-source Python or ML projects
+
+Salary: Competitive market rate + equity
+Culture: Fast-paced, outcome-oriented, remote-first.

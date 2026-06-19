@@ -1,0 +1,98 @@
+[
+  {
+    "id": "pm_cand_01",
+    "name": "Amit Patel",
+    "skills": ["Product Roadmap", "Agile", "SQL", "Stakeholder Management", "Jira", "Mixpanel"],
+    "experience_years": 4,
+    "current_title": "Product Manager",
+    "previous_titles": ["Associate Product Manager"],
+    "domain": "B2B SaaS",
+    "location": "Bangalore",
+    "last_active_date": "2026-06-11",
+    "bio": "Product manager with a track record of driving roadmaps and backlog prioritization at scalable SaaS startups."
+  },
+  {
+    "id": "pm_cand_02",
+    "name": "Swati Sharma",
+    "skills": ["Product Roadmap", "Agile", "SQL", "Stakeholder Management", "Mixpanel", "Amplitude", "Jira", "Product Strategy"],
+    "experience_years": 7,
+    "current_title": "Senior Product Manager",
+    "previous_titles": ["Product Manager", "Software Engineer"],
+    "domain": "B2B SaaS",
+    "location": "Mumbai",
+    "last_active_date": "2026-06-06",
+    "bio": "Senior product leader with 7 years of experience owning roadmap strategies and collaborating with engineering teams."
+  },
+  {
+    "id": "pm_cand_03",
+    "name": "Rohan Gupta",
+    "skills": ["SQL", "Data Analysis", "Python", "Mixpanel", "Agile", "Stakeholder Management", "Tableau"],
+    "experience_years": 3,
+    "current_title": "Product Analyst",
+    "previous_titles": ["Data Analyst"],
+    "domain": "B2B SaaS",
+    "location": "Gurgaon",
+    "last_active_date": "2026-06-12",
+    "bio": "Product analyst focused on leveraging SQL and dashboards to track features, analyze metrics, and support roadmaps."
+  },
+  {
+    "id": "pm_cand_04",
+    "name": "Priyesh Kumar",
+    "skills": ["Product Roadmap", "Agile", "SQL", "Stakeholder Management", "Jira", "UPI", "Fastag"],
+    "experience_years": 3,
+    "current_title": "Product Manager",
+    "previous_titles": ["Business Analyst"],
+    "domain": "Fintech",
+    "location": "Pune",
+    "last_active_date": "2026-06-12",
+    "bio": "Product manager focusing on digital payments and workflow optimization."
+  },
+  {
+    "id": "pm_cand_05",
+    "name": "Ananya Sen",
+    "skills": ["Requirements Gathering", "Excel", "Agile", "Jira", "User Stories"],
+    "experience_years": 1,
+    "current_title": "Junior Business Analyst",
+    "previous_titles": [],
+    "domain": "B2B SaaS",
+    "location": "Noida",
+    "last_active_date": "2026-06-04",
+    "bio": "Recent business graduate working on documentation, requirements gathering, and user stories."
+  },
+  {
+    "id": "pm_cand_06",
+    "name": "Kunal Kapoor",
+    "skills": ["Agile", "SQL", "Jira", "Documentation", "Scrum"],
+    "experience_years": 2,
+    "current_title": "Business Analyst",
+    "previous_titles": ["Intern"],
+    "domain": "Healthcare",
+    "location": "Chennai",
+    "last_active_date": "2026-06-01",
+    "bio": "Business analyst assisting Scrum Masters and engineering teams with documentation and backlog tickets."
+  },
+  {
+    "id": "pm_cand_07",
+    "name": "Vikram Singh",
+    "skills": ["AutoCAD", "Structural Design", "Project Management", "Site Inspection"],
+    "experience_years": 5,
+    "current_title": "Civil Engineer",
+    "previous_titles": ["Site Engineer"],
+    "domain": "Construction",
+    "location": "Jaipur",
+    "last_active_date": "2026-02-16",
+    "bio": "Civil engineer with experience overseeing building structures and site security protocols."
+  },
+  {
+    "id": "pm_cand_08",
+    "name": "Neha Roy",
+    "skills": ["Figma", "Photoshop", "Illustrator", "UI Design", "Branding"],
+    "experience_years": 4,
+    "current_title": "Graphic Designer",
+    "previous_titles": ["Visual Artist"],
+    "domain": "Design Agency",
+    "location": "Mumbai",
+    "last_active_date": "2026-06-14",
+    "bio": "Creative graphic designer specializing in user experience assets, marketing banners, and visual layouts."
+  }
+]
