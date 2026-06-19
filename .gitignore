@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Large candidate datasets
+candidates.jsonl
+candidates.jsonl.gz
+sample_candidates.json
+candidates.json
+
+# Precomputed embeddings (too large for Git)
+precomputed/
+precomputed/*.npy
+
+# Submission output csv
+submission_test.csv
