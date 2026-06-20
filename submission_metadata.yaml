@@ -1,5 +1,5 @@
 # Redrob Hackathon — Submission Metadata
-# TalentLens Bharat — Intelligent Candidate Discovery & Ranking
+# TalentLens Bharat · Track 1 · India Runs
 
 # ============================================================================
 # Team identity
@@ -7,14 +7,23 @@
 team_name: "talentlens-bharat"
 
 primary_contact:
-  name: "Sujin SP"
+  name: "Sujin S P"
   email: "sujin.is.online@gmail.com"
-  phone: "+91-XXXXXXXXXX"
+  phone: "+917418246892"
 
 team_members:
-  - name: "Sujin SP"
+  - name: "Manu Krishnan"
+    email: "manukrishnankess@gmail.com"
+    role: "Team Leader"
+  - name: "Sujin S P"
     email: "sujin.is.online@gmail.com"
-    role: "Full-Stack ML Engineer"
+    role: "ML Engineer — Track 1 (Intelligent Candidate Discovery)"
+  - name: "OMPRAVEENKUMAR D"
+    email: "ompraveenkumard@gmail.com"
+    role: "Team Member"
+  - name: "Livins LH"
+    email: "livinslivi303@gmail.com"
+    role: "Team Member"
 
 # ============================================================================
 # Code and reproducibility
@@ -23,17 +32,17 @@ github_repo: "https://github.com/sujinjust4u/talentlens-bharat"
 
 sandbox_link: "https://talentlens-bharat-p9mszttjf8x77caexawwvf.streamlit.app"
 
-reproduce_command: "python3 rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+reproduce_command: "python3 rank.py --candidates ./candidates.jsonl.gz --out ./submission.csv"
 
 # ============================================================================
 # Compute environment
 # ============================================================================
 compute:
-  platform: "MacBook Pro M2"
+  platform: "MacBook Air M2 15-inch"
   cpu_cores: 8
-  ram_gb: 16
+  ram_gb: 8
   python_version: "3.13.3"
-  os: "macOS 14.2"
+  os: "macOS"
   uses_gpu_for_inference: false
   has_network_during_ranking: false
   pre_computation_required: true
@@ -44,30 +53,38 @@ compute:
 # ============================================================================
 ai_tools_used:
   - "Claude"
-  - "GitHub Copilot"
+  - "Gemini (Antigravity IDE)"
 
 ai_usage_summary: |
-  Used Claude for architecture discussion, code review, and debugging.
-  Used GitHub Copilot for autocomplete. No candidate data was fed to
-  any external LLM during the ranking step. LLM calls (Groq/Llama-3.1)
-  are only used in offline pre-generation of reasoning strings, which
-  are cached as data/reasoning_cache.json before submission.
+  Used Claude (Anthropic) for architecture discussion, prompt engineering
+  for the LLM explainer stage, and code review. Used Gemini via the
+  Antigravity IDE for iterative code generation and debugging across all
+  pipeline stages. No candidate data from the official dataset was fed to
+  any external LLM. All ranking logic, scoring weights, and signal design
+  are original work.
 
 # ============================================================================
 # Approach summary
 # ============================================================================
 methodology_summary: |
-  Four-component offline ranker with zero network calls at runtime.
-  Semantic similarity (55%) via sentence-transformers/all-MiniLM-L6-v2
-  cosine embeddings precomputed for 100K candidates. India platform
-  signals (20%) score activity recency, city tier, profile completeness,
-  and India-specific tech. Career trajectory (10%) measures skill
-  velocity, title progression speed, and advanced recency. Behavioral
-  signals (15%) weight open_to_work, recruiter response rate, and
-  GitHub activity. Honeypot detection via proficiency-duration
-  inconsistency catches ~605 impossible profiles. Disqualifier
-  penalties for consulting-only careers, title-chasers, and
-  offer-ghosting. Runtime: 6 seconds for 100K candidates on CPU.
+  TalentLens Bharat is a 4-component blended scoring pipeline designed for
+  the Indian talent market. The final score is:
+  0.55 * semantic_score * seniority_penalty
+  + 0.20 * india_signal_score
+  + 0.10 * trajectory_score
+  + 0.15 * behavioral_signal_score
+
+  Semantic score uses all-MiniLM-L6-v2 embeddings with a seniority gap
+  multiplier (1.00 to 0.75) to prevent junior keyword-stuffers outranking
+  senior candidates. India signals reward Tier-2/3 city candidates (+0.15),
+  India-specific tech stacks (UPI, Aadhaar, Tally, +0.10 each), and recent
+  platform activity. Trajectory scoring measures career momentum via skill
+  velocity and title progression speed. Behavioral signals use redrob_signals
+  fields: open_to_work_flag, recruiter_response_rate, github_activity_score.
+  Disqualifier penalties (job hopping, consulting-only careers, offer
+  ghosting) multiply the blended score down. Honeypot detection caps
+  impossible profiles at 0.05. Embeddings are precomputed offline;
+  ranking runs in under 7 seconds with zero network calls.
 
 # ============================================================================
 # Declarations
