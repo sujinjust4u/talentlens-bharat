@@ -1,274 +1,380 @@
-# TalentLens Bharat
+# TalentLens Bharat 🇮🇳
+### Intelligent Candidate Discovery — Redrob AI · India Runs Hackathon · Track 1
 
-Redrob AI ranks 790M+ profiles. Keyword filters miss the best candidates. TalentLens is the pipeline that understands why a candidate fits — not just whether keywords match.
+> Redrob AI ranks millions of profiles. Keyword filters miss the best ones.  
+> TalentLens understands **why** a candidate fits — not just whether keywords match.
 
-**Author**: Sujin SP (Solo Participant)
+**Team:** Manu Krishnan (Lead) · Sujin S P (ML Engineer, Track 1) · OMPRAVEENKUMAR D · Livins LH  
+**Track 1 built by:** Sujin S P (solo)
 
 ---
 
-### 🚀 Quickstart (Reproduce Submission in 3 Commands)
+## Quickstart — reproduce submission in 4 steps
+
 ```bash
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Precompute offline embeddings locally
-python3 precompute.py --candidates candidates.jsonl
+# 2. Precompute candidate embeddings offline (run once)
+python3 precompute.py --candidates candidates.jsonl.gz
 
-# 3. Generate offline reasoning & execute ranking
-python3 generate_reasoning.py --candidates candidates.jsonl --top-n 150
-python3 rank.py --candidates candidates.jsonl --out submission.csv
+# 3. Generate LLM reasoning cache offline (run once, needs GROQ_API_KEY)
+python3 generate_reasoning.py --candidates candidates.jsonl.gz --top-n 150
+
+# 4. Rank all 100K candidates and write submission CSV (zero network, ~6 seconds)
+python3 rank.py --candidates candidates.jsonl.gz --out submission.csv
+
+# Validate before submitting
+python3 validate_submission.py submission.csv
+```
+
+Set your API key once:
+```env
+GROQ_API_KEY=gsk_your_key_here
 ```
 
 ---
 
+## How it answers the JD
 
-## What makes this different from every other submission
+The job description explicitly says:
 
-*   **Seniority-aware ranking**: Combines semantic embeddings with explicit seniority comparisons to ensure junior candidates no longer outrank senior roles.
-*   **India signal scoring**: Applies targeted boosts for tier-2/3 Indian cities, flags activity recency, and detects India-specific technical skills (like UPI, Tally, Aadhaar) to prioritize active, local candidates.
-*   **Recruiter concern flags & penalties**: Surfaces actionable warnings (such as complete lack of listed skills or prolonged inactivity) as structured metadata alerts, and applies a structural `-0.20` score penalty to ensure profiles without verifiable skills rank lower.
-*   **Live Streamlit dashboard**: Provides an interactive dashboard where a recruiter can paste a job description and get fully ranked and justified candidates in under 30 seconds without touching code.
-*   **Career trajectory prediction**: Ranks candidates not just on current profile but on momentum. A mid-level engineer actively acquiring senior-level skills like LangChain, RAG pipelines, and system design ranks above a stagnant senior with the same title. The LLM explainer in Stage 3 conditionally weaves trajectory language into justifications only when the signal is real.
-*   **Candidate Persona Clustering**: Clusters candidates into 3-4 archetypes using unsupervised learning (KMeans) before ranking. Labels groups as "The Deep Specialist", "The Generalist Builder", or "The Domain Expert", and recommends the best cluster for the role to give recruiters a clear mental model.
-*   **Skill Gap Explainer & Learning Bridge**: For top candidates, identifies missing requirements, estimates learning time based on trajectory, and suggests specific resources (Coursera, GitHub repos) to bridge the gap.
-*   **Bias Detection & Fairness Audit**: Audits the pipeline's own rankings for potential gender and geographic bias using Cohen's d effect size analysis. Surfaces a structured Fairness Report with underranked candidate flags, group-level score comparisons, and actionable recommendations. Gender is inferred conservatively from a curated Indian first-name dictionary — names not in the dictionary are classified as Unknown, never guessed. No enterprise ATS does self-auditing like this today.
-*   **Reverse JD Generator & Alignment Analyzer**: Reconstructs the ideal job description matching the top 3 ranked candidates and compares it with the original JD requirements. It displays an overall alignment score (0-100), visualizes a side-by-side skill grid, and outputs actionable rewrite suggestions to assist recruiters in modifying requirements to match the available talent pool.
-*   **Structured Confidence Scoring & Reasoning**: Replaces raw match score floats with a natural language reasoning string (e.g., `High confidence (0.77) — 4/5 required skills matched, seniority exact, active 3 days ago.`) to provide clear, structured uncertainty communication.
-*   **Targeted Interview Question Generator**: Auto-generates exactly 3 personalized technical or experience-based interview questions for the top candidates, focusing specifically on probing their identified skill gaps or domain transitions.
-*   **"Dark Horse" Spotlight**: Programmatically scans candidates outside the top 5 to find and highlight one candidate with high potential (e.g., due to a regional location boost or career trajectory momentum) and provides a clear note to the recruiter explaining why they deserve a second look.
+> *"The right answer involves reasoning about the gap between what the JD says and what the JD means."*
 
+> *"A perfect-on-paper candidate who hasn't logged in for 6 months and has a 5% recruiter response rate is, for hiring purposes, not actually available."*
+
+> *"That's a trap we've explicitly built into the dataset."*
+
+TalentLens addresses all three directly:
+
+| What the JD warns about | How TalentLens handles it |
+|---|---|
+| Keyword stuffers with no real experience | Semantic embedding ranks by meaning, not keywords. Expert skills with 0 duration months → honeypot cap (score 0.05) |
+| Unavailable candidates who look great on paper | Behavioral signal layer: open_to_work + last_active_date + recruiter_response_rate + github_activity |
+| Title-chasers hopping every 1.5 years | Explicit disqualifier: avg tenure <18 months over 3+ roles → ×0.80 penalty |
+| Consulting-only careers (TCS, Infosys, Wipro) | Explicit disqualifier: consulting-only history → ×0.75 penalty |
+| Offer ghosters | offer_acceptance_rate = 0.0 → ×0.85 penalty |
+| Tier-2/3 hidden gems missed by keyword search | India signal layer: +0.15 city boost for 37+ Tier-2/3 cities |
+| AI keywords without pre-LLM production experience | Career trajectory scoring: title progression speed + skill velocity rewards real experience depth |
 
 ---
 
-## Architecture Overview
+## Scoring formula
 
-TalentLens processes candidate pools in a decoupled, modular pipeline:
-
-```mermaid
-graph TD
-    JD[Raw job_description.txt] -->|Stage 1: LLM Parser| S1[stage1_parser.py]
-    S1 -->|Parsed JD JSON| S2[stage2_ranker.py]
-    CAND[Candidates Pool] -->|Stage 2: NumPy Cosine similarity| S2
-    S2 -->|Seniority Penalty Match| S2b[stage2b_india_signals.py]
-    S2b -->|India Signal Boosts + Recruiter Flags| S2c[stage2c_trajectory.py]
-    S2c -->|Career Trajectory & Velocity Score| S2d[stage2d_clustering.py]
-    S2d -->|Candidate Persona Clustering| S2e[stage2e_bias_audit.py]
-    S2e -->|Fairness Report| S3[stage3_explainer.py]
-    S3 -->|Stage 3: LLM Explainer & Learning Bridge| S4[stage4_reverse_jd.py]
-    S4 -->|Stage 4: Reverse JD & Talent Alignment| FINAL[Enriched Output & Reverse JD Analysis]
+```
+Final Score = Disqualifier_Penalty × Stuffer_Penalty × (
+    0.55 × Semantic_Score × Seniority_Multiplier
+  + 0.20 × India_Signal_Score
+  + 0.10 × Career_Trajectory_Score
+  + 0.15 × Behavioral_Signal_Score
+)
 ```
 
-- **Stage 1: Job Description Parsing ([stage1_parser.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage1_parser.py))**:
-  Uses `llama-3.1-8b-instant` via LangChain with Pydantic structured output models to parse raw job description text into standardized JSON schemas containing required/nice-to-have skills, target domain, and target seniority levels.
+**Why these weights:**
+- 55% semantic — core fit is the primary signal, not a tiebreaker
+- 20% India signals — Redrob's mission is the Indian talent market; this operationalizes it
+- 15% behavioral — availability matters as much as suitability for active hiring
+- 10% trajectory — career momentum is a tiebreaker between similar semantic scores
 
-- **Stage 2: Semantic Similarity & Seniority Matching ([stage2_ranker.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage2_ranker.py))**:
-  Computes candidate profile embeddings locally using the `sentence-transformers/all-MiniLM-L6-v2` model. Calculates the raw cosine similarity matrix against the job requirements using NumPy.
-  Applies a seniority gap multiplier based on the distance between the parsed target seniority and candidate title seniority (intern, junior, mid, senior, lead, principal/architect/staff mapped 0 to 5):
-  *   **Gap = 0**: Multiplier = `1.00` (sets `seniority_match = True`)
-  *   **Gap = 1**: Multiplier = `0.92`
-  *   **Gap = 2**: Multiplier = `0.82`
-  *   **Gap $\ge$ 3**: Multiplier = `0.75`
+---
 
-- **Stage 2b: Localized India Signal Scoring & Penalty ([stage2b_india_signals.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage2b_india_signals.py))**:
-  Evaluates candidates against a baseline signal score of `0.50`:
-  *   *Tier-2/3 City Location Boost*: `+0.15` (e.g. Madurai, Indore, Jaipur)
-  *   *Recency of Activity Boost/Penalty*: active < 30 days (`+0.15`), < 90 days (`+0.05`), > 180 days (`-0.05`)
-  *   *India-Specific Tech Boost*: `+0.10` per match (UPI, Tally, Bhim, GSTIN, Aadhaar)
-  *   *Null-Skills Score Penalty*: Subtracts `0.20` before clamping if the `skills` list is null, missing, or empty.
-  Generates warning flags (`recruiter_flag`) for severe profile anomalies (null skills or inactivity > 180 days).
+## Pipeline architecture
 
-- **Stage 2c: Career Trajectory Scoring ([stage2c_trajectory.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage2c_trajectory.py))**:
-  Calculates momentum by assessing skill velocity (acquiring skills above current title rank), title progression speed, and advanced recency (adding senior/lead skills recently). Output labels include `High momentum`, `Steady growth`, `Early stage`, and `Plateau`.
-  The scores are merged using the four-component equation:
-  $$\text{Final Score} = 0.70 \times \text{Semantic Score} + 0.20 \times \text{India Signal Score} + 0.10 \times \text{Trajectory Score}$$
+```
+OFFLINE (run once before submission):
+  candidates.jsonl.gz ──► precompute.py ──► embeddings.npy (float16, ~73MB)
+  job_description.txt ──► stage1_parser.py ──► parsed_jd.json
+  top 150 candidates ──► generate_reasoning.py ──► reasoning_cache.json (150 LLM calls)
 
-- **Stage 2d: Candidate Persona Clustering ([stage2d_clustering.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage2d_clustering.py))**:
-  Performs KMeans unsupervised clustering on the candidate profile embeddings. Segment candidates into distinct archetypes: "The Deep Specialist" (focused high depth skills), "The Generalist Builder" (broad stack, startup-ready), or "The Domain Expert" (strong domain fit). Determines the best cluster for the role based on average candidate final scores.
-
-- **Stage 2e: Bias Detection & Fairness Audit ([stage2e_bias_audit.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage2e_bias_audit.py))**:
-  Self-audits the pipeline's rankings for potential demographic and geographic bias:
-  *   *Gender Audit*: Infers gender conservatively from a curated Indian first-name dictionary (unknown names are excluded, never guessed). Computes group-level score distributions and Cohen's d effect size.
-  *   *City Tier Audit*: Classifies candidates into Tier-1 metros vs. Tier-2/3 cities and checks for systematic ranking gaps.
-  *   *Underranking Detection*: Flags candidates from disadvantaged groups who have higher semantic scores but lower final ranks — indicating the signal layers (not core skills) caused the gap.
-  *   Outputs a Fairness Report with score 0–100, letter grade (A–F), per-dimension verdicts (PASS/WATCH/FLAG), and actionable recommendations.
-
-- **Stage 3: Justification Explainer & Learning Bridge ([stage3_explainer.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage3_explainer.py))**:
-  Coordinates completions using a structured template to generate:
-  1. A two-sentence match justification (trajectory-aware).
-  2. A **Skill Gap Explainer & Learning Bridge** report, detailing missing skills, estimated time to close the gap based on candidate velocity, and specific recommended courses or repositories.
-
-- **Stage 4: Reverse JD Generator & Alignment Analyzer ([stage4_reverse_jd.py](file:///Users/sujinsp/Desktop/redrob%20ai/stage4_reverse_jd.py))**:
-  Takes the top 3 ranked candidates from the pipeline and reconstructs the ideal job description (Title, Seniority, Core Skills, Nice-To-Have, Summary) that represents the available talent. It calculates an alignment score (0-100), creates a Skill Comparison Grid mapping candidate and JD requirements, and generates actionable JD rewrite suggestions to help the recruiter adjust requirements.
-
-### Sample Enriched Candidate Output Schema
-```json
-{
-  "id": "cand_01",
-  "name": "Aarav Sharma",
-  "skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "Kubernetes", "Redis", "LangChain", "LLMs", "UPI"],
-  "experience_years": 6,
-  "current_title": "Senior Backend Engineer",
-  "previous_titles": ["Backend Developer", "Software Engineer"],
-  "domain": "Fintech",
-  "location": "Bangalore",
-  "last_active_date": "2026-06-10",
-  "bio": "Experienced backend developer focused on building secure financial data platforms and deploying LLM applications.",
-  "recent_skills_added": ["LangChain", "Terraform", "RAG Pipelines"],
-  "semantic_score": 0.7642,
-  "seniority_match": true,
-  "india_signal_score": 0.75,
-  "india_signals_detected": ["Highly active: active 6 days ago", "India Tech Match: upi (+0.10)"],
-  "trajectory_score": 0.5,
-  "trajectory_label": "Steady growth",
-  "trajectory_signals": [
-    "Solid title progression: 3 titles in 6 years",
-  ],
-  "persona_cluster": "The Generalist Builder",
-  "final_score": 0.735,
-  "match_score": 0.735,
-  "rank": 1,
-  "justification": "Aarav Sharma's extensive experience with Python, PostgreSQL, Redis, and LangChain aligns perfectly with the required core skills for this role. With a steady career growth trajectory marked by solid title progression and the recent acquisition of advanced skills such as LangChain, Aarav is well-positioned to excel in a senior position within a high-growth Fintech environment.",
-  "skill_gap_report": {
-    "missing_skills": ["FastAPI", "UPI", "financial auditing tools", "FAISS", "Qdrant", "Pinecone", "AWS cloud infrastructure"],
-    "learning_time_inferred": "~2-3 months",
-    "suggested_resources": [
-      {
-        "name": "Hugging Face Transformers Tutorial",
-        "url_or_platform": "Hugging Face",
-        "description": "Learn how to fine-tune and deploy LLMs with Hugging Face Transformers"
-      },
-      {
-        "name": "FAISS Documentation",
-        "url_or_platform": "Facebook AI",
-        "description": "Learn how to implement efficient similarity search with FAISS"
-      }
-    ]
-  }
-}
+ONLINE RANKING (zero network, ~6 seconds):
+  embeddings.npy ──► numpy batch dot product (cosine sim for all 100K simultaneously)
+       │
+       ▼
+  honeypot filter ──► cap at 0.05 (605 caught)
+       │
+       ▼
+  4-component blend + disqualifier penalties
+       │
+       ▼
+  sort descending, ties broken by candidate_id ascending
+       │
+       ▼
+  top 100 + reasoning from cache ──► submission.csv ✅
 ```
 
-### Fairness Report Output Schema
-```json
-{
-  "report_title": "TalentLens Fairness Report",
-  "total_candidates_audited": 25,
-  "fairness_score": 65,
-  "fairness_grade": "C",
-  "population_distribution": {
-    "by_gender": { "Male": 14, "Female": 10, "Unknown": 1 },
-    "by_city_tier": { "Tier-1": 16, "Tier-2/3": 9 }
-  },
-  "dimensions": [
-    {
-      "dimension": "Gender",
-      "verdict": {
-        "level": "WATCH",
-        "summary": "Minor score gap observed. Effect size is small (Cohen's d = -0.218)."
-      }
-    },
-    {
-      "dimension": "City Tier",
-      "verdict": {
-        "level": "FLAG",
-        "summary": "Potential bias detected. Effect size is medium (Cohen's d = -0.785). Tier-2/3 scores higher."
-      }
-    }
-  ]
-}
-```
+---
 
-### Reverse JD Analysis Output Schema
+## Stage-by-stage breakdown
+
+### Stage 1 — LLM job description parser (`stage1_parser.py`)
+
+Converts raw JD text into a structured Pydantic JSON via `llama-3.1-8b-instant` (Groq).
+
+Extracts:
+- `required_skills` vs `nice_to_have` (explicitly separated — not the same list)
+- `target_seniority`: intern / junior / mid / senior / lead / principal
+- `target_domain`: Fintech, B2B SaaS, etc.
+- `implicit_signals`: "scrappy product attitude", "ships before optimizing", "India market"
+
+The structured profile — not the raw JD text — is what gets embedded. This means the semantic similarity is comparing candidate profiles against *what the role actually needs*, not whatever keywords the hiring manager happened to use.
+
+---
+
+### Stage 2 — Semantic ranker with seniority penalty (`stage2_ranker.py`)
+
+Embeds all candidate profiles locally with `sentence-transformers/all-MiniLM-L6-v2` (no API cost, no rate limits, runs entirely offline). Computes cosine similarity via NumPy batch dot product — all 100K in a single pass.
+
+**Seniority gap multiplier** — prevents a junior candidate with perfect keywords from outranking a senior:
+
+| Gap from JD seniority | Multiplier |
+|---|---|
+| 0 — exact match | 1.00 |
+| 1 level off | 0.92 |
+| 2 levels off | 0.82 |
+| 3+ levels off | 0.75 |
+
+The JD says 5–9 years and targets senior level. A principal-level candidate still scores at 0.75× — overqualified is penalized just like underqualified.
+
+---
+
+### Stage 2b — India signal scoring (`stage2b_india_signals.py`)
+
+Starting from baseline `0.50`:
+
+| Signal | Adjustment |
+|---|---|
+| Tier-2/3 city (37+ cities: Madurai, Indore, Jaipur, Coimbatore, Nagpur…) | `+0.15` |
+| Active in last 30 days | `+0.15` |
+| Active in last 90 days | `+0.05` |
+| Inactive > 180 days | `−0.05` |
+| India-specific tech (UPI, Tally, Bhim, Rupay, Aadhaar, GSTIN, PhonePe, Razorpay…) | `+0.10` per match |
+| Skills list null or empty | `−0.20` penalty + `recruiter_flag` |
+
+The Tier-2/3 boost directly addresses what the JD's "final note for participants" highlights — hidden gems whose career history shows real product experience but whose profiles don't surface via keyword search.
+
+---
+
+### Stage 2c — Career trajectory scoring (`stage2c_trajectory.py`)
+
+The JD explicitly says: *"Some people hit 'senior engineer' judgment at 4 years; some never hit it after 15."*
+
+This stage measures actual career momentum, not years of experience:
+
+- **Skill velocity** (up to 0.40): skills above current title's typical rank signal upward growth
+- **Title progression speed** (up to 0.30): 2+ roles in <5 YOE = 0.30, <7 YOE = 0.20, 1+ role = 0.10
+- **Advanced skill recency** (up to 0.30): senior/lead-tier skills acquired in last 12 months
+
+Labels: `High momentum` / `Steady growth` / `Early stage` / `Plateau`
+
+These labels feed Stage 3 — the LLM explainer adds trajectory language to justifications only when the signal is genuine, never for `Plateau` candidates.
+
+---
+
+### Stage 2c (ii) — Behavioral signal scoring
+
+Reads directly from `redrob_signals` (the 23 platform behavioral fields):
+
+| Signal | Contribution |
+|---|---|
+| `open_to_work_flag` = True | `+0.30` |
+| `last_active_date` < 7 days | `+0.30` |
+| `last_active_date` < 30 days | `+0.20` |
+| `last_active_date` < 90 days | `+0.06` |
+| `recruiter_response_rate` | Linear up to `+0.25` |
+| `github_activity_score` > 0 | Up to `+0.15` |
+
+The JD explicitly warns about unavailable candidates. This layer ensures a candidate with 6 months of inactivity and a 5% response rate — regardless of how strong their skills are — never reaches the top 100.
+
+---
+
+### Stage 2c (iii) — Disqualifier penalties
+
+Multiplicative penalties applied to the blended score (minimum combined multiplier: 0.50):
+
+| Disqualifier | Multiplier | JD reference |
+|---|---|---|
+| Title-chaser: avg tenure <18 months over 3+ roles | ×0.80 | "optimizing for Senior → Staff → Principal titles by switching companies every 1.5 years" |
+| Consulting-only career (TCS, Infosys, Wipro, Accenture…) | ×0.75 | "people who have only worked at consulting firms" |
+| Offer ghoster: acceptance rate = 0.0 | ×0.85 | behavioral availability |
+| Unreliable: interview completion rate < 50% | ×0.90 | behavioral availability |
+| Unresponsive: recruiter response rate < 20% | ×0.92 | behavioral availability |
+
+---
+
+### Stage 2c (iv) — Honeypot and keyword-stuffer defense
+
+605 honeypots detected across 100K candidates. None entered the top 100.
+
+**Hard detection** — score capped at 0.05:
+- Expert or advanced proficiency with `duration_months = 0` (impossible)
+- 10+ expert skills simultaneously
+
+**Statistical penalty** — multiplicative penalties (floor 0.30):
+- 12+ skills with zero total endorsements: ×0.50
+- 8+ skills with zero endorsements: ×0.70
+- 8+ expert/advanced skills but <5 total endorsements: ×0.65
+- >6 skills per year of experience (density anomaly): ×0.85
+- 3+ low assessment scores (<25) contradicting expert claims: ×0.80
+
+---
+
+### Stage 2d — Candidate persona clustering (`stage2d_clustering.py`)
+
+KMeans unsupervised clustering on candidate profile embeddings. Groups the talent pool into 3–4 archetypes before the recruiter reads individual profiles:
+
+- **The Deep Specialist** — narrow skills, high depth in one domain
+- **The Generalist Builder** — broad stack, startup-ready (most relevant to this JD)
+- **The Domain Expert** — strong industry background, domain-first
+
+Recommends which cluster best fits the role based on cluster-average final scores.
+
+---
+
+### Stage 2e — Bias detection and fairness audit (`stage2e_bias_audit.py`)
+
+The pipeline audits its own rankings. No enterprise ATS does this.
+
+**What it checks:**
+- **Gender audit**: Conservative inference from curated Indian first-name dictionary. Names not in the dictionary → `Unknown`, never guessed.
+- **Geographic audit**: Tier-1 metros vs Tier-2/3 cities — verifies the India signal boost doesn't create excessive score gaps.
+
+**Metrics computed:** group-level score distributions, Cohen's d effect size, underranked candidate detection (candidates whose semantic score exceeds a higher-ranked candidate from an advantaged group by >0.02).
+
+**Verdicts:** `|d| < 0.20` = PASS · `0.20–0.50` = WATCH · `> 0.50` = FLAG
+
+Output: Fairness Score 0–100, letter grade A–F, per-dimension verdicts, actionable recommendations.
+
+---
+
+### Stage 3 — LLM justifier and skill gap bridge (`stage3_explainer.py`)
+
+For each top candidate, a structured LLM call generates three things:
+
+**1. Trajectory-aware justification (2 sentences)**  
+Trajectory language is added only when real (`High momentum` or `Steady growth`). For `Plateau` candidates it focuses on domain and seniority fit — no false optimism.
+
+**2. Skill gap and learning bridge**  
+Missing JD requirements, learning time estimated from trajectory label, 2–3 specific resources (Coursera links, GitHub repos, official docs) — not generic suggestions.
+
+**3. Three targeted interview questions**  
+Auto-generated to probe the candidate's specific identified gaps. Not generic technical questions — questions that only make sense for this candidate against this JD.
+
+---
+
+### Stage 4 — Reverse JD generator (`stage4_reverse_jd.py`)
+
+Takes the top 3 ranked candidates and reconstructs what the ideal job description *should* say given the actual talent pool. Inverts the problem: instead of ranking candidates against the JD, it asks *"if these are your best matches, what role are you actually hiring for?"*
+
+**Output:**
+- Alignment score (0–100) comparing original JD to reconstructed ideal
+- Skill comparison grid: Aligned / Missing in Candidates / Bonus in Candidates  
+- Actionable JD rewrite suggestions
+
+Example output for this JD:
 ```json
 {
   "alignment_score": 95,
-  "alignment_explanation": "The original JD is highly aligned with the top candidates, with a score of 95. The candidates possess all the required skills and some nice-to-have skills, but lack financial auditing tools and SEC data/transaction systems.",
-  "ideal_jd": {
-    "suggested_title": "Senior Backend Engineer",
-    "suggested_seniority": "Senior",
-    "core_skills": ["Python", "PostgreSQL", "Redis", "LangChain", "Hugging Face", "LLMs", "Docker", "Kubernetes", "FastAPI"],
-    "nice_to_have_skills": ["financial auditing tools", "SEC data/transaction systems", "FAISS", "Qdrant", "Pinecone", "AWS cloud infrastructure"],
-    "ideal_summary": "Highly experienced developer specializing in fintech infrastructures, low-latency microservices, and AI integrations."
-  },
-  "skill_comparisons": [
-    {
-      "skill_name": "Kafka",
-      "in_original_jd": true,
-      "in_top_candidates": false,
-      "status": "Missing in Candidates",
-      "recommendation": "Replace Kafka with RabbitMQ as all top candidates are familiar with RabbitMQ but lack Kafka."
-    }
-  ],
   "suggested_jd_rewrites": [
-    "Replace Kafka with RabbitMQ as all top candidates are familiar with RabbitMQ but lack Kafka.",
-    "Remove financial auditing tools as it is missing in all top candidates.",
-    "Add FastAPI as it is a bonus critical skill not in the JD."
+    "Replace Kafka with RabbitMQ — all top candidates familiar with RabbitMQ, none with Kafka.",
+    "Add FastAPI as core requirement — present in top candidates, missing from JD.",
+    "Remove financial auditing tools — missing across all top candidates."
   ]
 }
 ```
 
 ---
 
-## What I'd build next with access to Redrob's data
+## Production pipeline (`rank.py`) — technical specs
 
-*   **Replace mock candidates with live Redrob profile API**: Query live talent databases directly to perform real-time ranking on fresh profile data.
-*   **Multilingual JD parsing for Hindi and Tamil input**: Expand standard LLM schemas to capture requirements and skills expressed in native Indian regional languages.
-*   **Fine-tune seniority model on Redrob's actual hire and no-hire labels**: Transition from heuristic seniority levels to a supervised matching model trained on historical recruiter actions.
-*   **Add Precision at K evaluation using real recruiter feedback**: Integrate validation telemetry to measure how accurately the top $K$ ranked profiles match real-world hiring decisions.
-*   **Validate whether the India signal scorer actually improves recruiter shortlist acceptance rates**: Run an A/B test with and without the signal layer on Redrob's real recruiter feedback data to prove the 80/20 blend is the right weight.
+| Metric | Value |
+|---|---|
+| Dataset size | 100,000 candidates |
+| Wall-clock runtime | 6.46 seconds |
+| Peak memory usage | 415.7 MB |
+| Memory limit | 16 GB |
+| Network calls during ranking | 0 |
+| GPU required | No |
+| Honeypots detected | 605 |
+| Honeypots in top 100 | 0 |
+| LLM reasoning coverage | 100/100 |
+| Fallback reasoning | 0 |
+| Validator result | ✅ Submission is valid |
 
----
-
-## Installation & Setup
-
-1. **Install Packages**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Configure API Keys**:
-   Create a `.env` file in the root directory:
-   ```env
-   GROQ_API_KEY=gsk_your_groq_api_key_here
-   ```
-   *(Note: The pipeline automatically routes to Groq for `gsk_` keys and xAI Grok for `xai-` keys).*
+**Imports in `rank.py`:** `argparse`, `csv`, `gzip`, `json`, `os`, `sys`, `time`, `datetime`, `numpy` — zero network dependencies, verified by regex scan.
 
 ---
 
-## Run Instructions
+## Streamlit dashboard (`app.py`)
 
-### 1. Production Hackathon Submission Flow
-To generate a validated `submission.csv` for the 100,000 candidates dataset:
+Live sandbox: [talentlens-bharat.streamlit.app](https://talentlens-bharat-p9mszttjf8x77caexawwvf.streamlit.app)
 
-*   **Step A: Precompute Candidate Embeddings** (Generates offline representations locally):
-    ```bash
-    python3 precompute.py --candidates candidates.jsonl
-    ```
-    *(Note: You can pass `.jsonl` or `.jsonl.gz` compressed formats).*
+Two modes:
 
-*   **Step B: Generate Reasoning Cache** (Selects top candidates and generates justifications using Groq API):
-    ```bash
-    python3 generate_reasoning.py --candidates candidates.jsonl --top-n 150
-    ```
+**Interactive Recruitment Explorer**  
+Paste any JD → get ranked candidates with confidence scores, persona clusters, fairness report, skill gap bridges, interview questions, and reverse JD analysis.
 
-*   **Step C: Execute the Offline Ranker** (Scores candidates, applies penalties, blocks honeypots, and writes results in **~6 seconds**):
-    ```bash
-    python3 rank.py --candidates candidates.jsonl --out submission.csv
-    ```
-
-*   **Step D: Validate the Final CSV**:
-    ```bash
-    python3 validate_submission.py submission.csv
-    ```
+**Production Submission Generator**  
+Upload `candidates.jsonl.gz` → runs the full offline pipeline → validates → browser download of `submission.csv`.
 
 ---
 
-### 2. Run Streamlit Web App
-To run the interactive recruiter interface:
-```bash
-streamlit run app.py
+## Project structure
+
 ```
-*Access the dashboard at `http://localhost:8501`.*
+talentlens-bharat/
+├── rank.py                    # Main submission file — judges run this
+├── precompute.py              # Offline: embed 100K candidates → embeddings.npy
+├── generate_reasoning.py      # Offline: LLM reasoning for top 150 → reasoning_cache.json
+├── stage1_parser.py           # LLM JD parser (LangChain + Groq)
+├── stage2_ranker.py           # Semantic embeddings + seniority penalty
+├── stage2b_india_signals.py   # India-specific signal scoring
+├── stage2c_trajectory.py      # Career momentum scoring
+├── stage2d_clustering.py      # KMeans persona clustering
+├── stage2e_bias_audit.py      # Fairness audit (Cohen's d)
+├── stage3_explainer.py        # LLM justifications + skill gap + interview Qs
+├── stage4_reverse_jd.py       # Reverse JD generator
+├── app.py                     # Streamlit dashboard
+├── validate_submission.py     # Redrob's official format validator
+├── submission_metadata.yaml   # Submission metadata (filled)
+├── data/
+│   ├── parsed_jd.json         # Pre-generated JD parse (ships with repo)
+│   └── reasoning_cache.json   # Pre-generated reasoning for top 150
+├── precomputed/               # embeddings.npy lives here (git-ignored, ~73MB)
+└── requirements.txt
+```
 
-The web UI includes two primary modules:
-1.  **🔍 Interactive Recruitment Explorer**: Custom job description parser, unsupervised persona clustering (KMeans), fairness & bias audits (Cohen's d), and personalized interview question generators.
-2.  **🏆 Production Submission Generator & Validator**: Run the large-scale streaming ranking and strict validation pipeline directly from your browser!
+---
+
+## What I'd build next with access to Redrob's production data
+
+| Feature | Why |
+|---|---|
+| Supervise seniority model on Redrob hire/no-hire labels | Replace heuristic gap multipliers with a model trained on actual recruiter decisions |
+| A/B test India signal layer on/off | Validate that 70/20/10 weighting actually improves shortlist acceptance rates |
+| Hindi and Tamil JD parsing | Capture requirements written in regional languages — keyword extraction misses these entirely |
+| Recruiter feedback loop | Online learning: thumbs-up/down on recommendations updates signal weights |
+| Live Redrob profile API integration | Replace static JSONL with real-time talent pool queries |
+
+**Honest uncertainty:** The India signal weights (+0.15 for Tier-2/3 cities, +0.10 per India-tech match) are heuristic. They need validation against real recruiter decisions to confirm they improve shortlist quality, not just shift rankings. This is the first thing I'd A/B test.
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/sujinjust4u/talentlens-bharat
+cd talentlens-bharat
+pip install -r requirements.txt
+
+# Add API key
+echo "GROQ_API_KEY=gsk_your_key_here" > .env
+```
+
+Requires Python 3.9+. No GPU. All embeddings run locally with `sentence-transformers/all-MiniLM-L6-v2`.
+
+---
+
+## Built by
+
+**Sujin S P** — B.Tech AI & ML (3rd year), SRM Institute of Science and Technology, Trichy  
+Track 1 solo build · TalentLens Bharat · India Runs Hackathon · Redrob AI × Hack2Skill · June 2026
